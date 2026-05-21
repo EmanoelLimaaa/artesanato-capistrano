@@ -47,7 +47,7 @@ export default function Login() {
                 </h1>
 
                 <p className="mt-2 text-center text-xs leading-relaxed text-[#8B5A2B]">
-                  Acesse sua painel próprio para publicar novos produtos ornamentais de Capistrano.
+                  Acesse seu painel para publicar novos produtos.
                 </p>
               </div>
 
