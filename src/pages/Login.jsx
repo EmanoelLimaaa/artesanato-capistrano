@@ -6,6 +6,37 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [mostrarReset, setMostrarReset] = useState(false);
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    const mail = resetEmail.trim() || email.trim();
+
+    if (!mail) {
+      alert("Informe seu e-mail para redefinir a senha.");
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(mail, {
+        redirectTo: window.location.origin + "/login",
+      });
+
+      if (error) throw error;
+
+      alert("Se o e-mail existir, você receberá um link para redefinir sua senha.");
+      setResetEmail("");
+      setMostrarReset(false);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao solicitar redefinição de senha. Verifique o e-mail e tente novamente.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,17 +48,13 @@ export default function Login() {
 
     try {
       setLoading(true);
-
-      // Faz o login direto no sistema do Supabase Auth
       const { error } = await supabase.auth.signInWithPassword({
         email: email,
         password: senha,
       });
 
       if (error) throw error;
-
       window.location.href = "/painel"; 
-
     } catch (err) {
       console.error(err);
       alert("Erro ao entrar: Verifique se o e-mail e a senha estão corretos.");
@@ -86,6 +113,7 @@ export default function Login() {
                 </p>
               </div>
 
+              {/* Formulário 1: login */}
               <form className="mt-8 flex flex-col gap-6" onSubmit={handleLogin}>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold tracking-widest text-[#8B5A2B] uppercase">
@@ -120,7 +148,43 @@ export default function Login() {
                 >
                   {loading ? "Entrando..." : "Entrar no Painel"}
                 </button>
+
+                <div className="text-center mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setMostrarReset(!mostrarReset)}
+                    className="text-xs text-[#A45A1F] underline bg-transparent border-none cursor-pointer"
+                  >
+                    Esqueceu sua senha de acesso?
+                  </button>
+                </div>
               </form>
+
+              {/* Seção 2: recuperação de senha */}
+              {mostrarReset && (
+                <div className="mt-6 border-t border-[#E7D7C8] pt-6">
+                  <form onSubmit={handleResetPassword} className="flex flex-col gap-3">
+                    <label className="text-[10px] font-bold tracking-widest text-[#8B5A2B] uppercase">
+                      Redefinir senha
+                    </label>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="Digite seu e-mail de recuperação"
+                      className="w-full rounded-xl border border-[#E7D7C8] bg-white px-4 py-3 text-sm text-[#2B1B14] outline-none placeholder:text-[#A07A55] focus:ring-2 focus:ring-[#A45A1F]/20 transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={resetLoading}
+                      className="w-full rounded-xl bg-white py-3 text-sm font-bold text-[#8B5A2B] border border-[#E7D7C8] hover:bg-[#FFF4D6] transition-colors disabled:opacity-60"
+                    >
+                      {resetLoading ? "Enviando..." : "Enviar link de recuperação"}
+                    </button>
+                  </form>
+                </div>
+              )}
+
             </div>
 
             <p className="mt-6 text-center text-xs text-[#A07A55]">
