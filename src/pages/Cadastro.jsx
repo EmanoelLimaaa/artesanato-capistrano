@@ -1,16 +1,27 @@
 import { useMemo, useState } from "react";
+import { supabase } from "../lib/supabase"; 
 
 const ESTADO_INICIAL = {
   nomeCompleto: "",
-  especialidade: "Argila e Cerâmica (Barro)",
+  especialidade: "ARGILA E CERÂMICA", 
   biografia: "",
   celular: "",
   email: "",
+  senha: "", 
+};
+
+const MAP_BANCO = {
+  "Argila e Cerâmica (Barro)": "ARGILA E CERÂMICA",
+  "Têxtil e Bordado (Tear)": "TÊXTIL E BORDADO",
+  "Madeira e Entalhe": "MADEIRA E ENTALHE",
+  "Palha e Trançado (Carnaúba/Palha)": "PALHA E TRANÇADO",
+  "Outros (Artesanato Variado)": "OUTROS"
 };
 
 export default function Cadastro() {
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const especialidades = useMemo(
     () => [
@@ -43,15 +54,57 @@ export default function Cadastro() {
       nextErrors.email = "E-mail inválido";
     }
 
+    if (!form.senha || form.senha.length < 6) {
+      nextErrors.senha = "A senha precisa ter no mínimo 6 caracteres";
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || loading) return;
 
-    window.location.href = "/login";
+    try {
+      setLoading(true);
+
+      // 1. Cria a autenticação do usuarioo
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.senha,
+      });
+
+      if (authError) throw authError;
+
+      const user = authData?.user;
+
+      if (user) {
+        const { error: perfilError } = await supabase
+          .from('artesaos')
+          .insert([
+            {
+              id: user.id, 
+              nome: form.nomeCompleto,
+              email: form.email,
+              whatsapp: form.celular.replace(/\D/g, ""), 
+              biografia: form.biografia,
+              especialidade: MAP_BANCO[form.especialidade] || "OUTROS" 
+            }
+          ]);
+
+        if (perfilError) throw perfilError;
+
+        alert("Cadastro realizado com sucesso! Faça seu login para gerenciar suas peças.");
+        window.location.href = "/login";
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao cadastrar: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const hasError = (key) => Boolean(errors[key]);
@@ -70,7 +123,7 @@ export default function Cadastro() {
           </h1>
 
           <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-[#3B2A22] md:text-base">
-            Divulgue sua técnica, exiba suas criações regionais e facilite o contato diretode novos compradores pelo whatsapp gratuitamente. Nós promovemos a cultura local.
+            Divulgue sua técnica, exiba suas criações regionais e facilite o contato direto de novos compradores pelo WhatsApp gratuitamente. Nós promovemos a cultura local.
           </p>
         </section>
 
@@ -161,15 +214,31 @@ export default function Cadastro() {
                   }`}
                   inputMode="email"
                 />
+              </div>
+
+              {/* Novo Campo Adicionado: Senha para login */}
+              <div>
+                <label className="block text-xs font-bold tracking-widest text-[#8B5A2B] uppercase">
+                  Senha de Acesso <span className="text-[#A45A1F]">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={form.senha}
+                  onChange={setField("senha")}
+                  placeholder="Mínimo 6 caracteres"
+                  className={`mt-2 w-full rounded-2xl border border-[#E7D7C8] bg-white px-4 py-3 text-sm outline-none placeholder:text-[#A07A55] focus:ring-2 focus:ring-[#A45A1F]/20 transition-all ${
+                    hasError("senha") ? "border-red-400" : ""
+                  }`}
+                />
                 <p className="mt-2 text-xs text-[#A07A55]">
-                  Este e-mail será usado para fazer login no sistema e gerenciar suas peças.
+                  Guarde essa senha! Ela servirá para atualizar seu painel no futuro.
                 </p>
               </div>
             </div>
 
             <div className="mt-7 grid grid-cols-1 md:grid-cols-2 items-center gap-5">
               <div className="flex items-start gap-3 text-sm text-[#8B5A2B]">
-                <div className="mt-0.5 h-5 w-5 rounded-full bg-[#FFF4D6] flex items-center justify-center text-[#A45A1F] font-bold">
+                <div className="mt-0.5 h-5 w-5 rounded-full bg-[#FFF4D6] flex items-center justify-center text-[#A45A1F] font-bold text-xs">
                   i
                 </div>
                 <div>
@@ -179,9 +248,10 @@ export default function Cadastro() {
 
               <button
                 type="submit"
-                className="w-full md:w-auto px-8 py-4 rounded-2xl bg-[#6B3B16] text-white font-semibold shadow-sm hover:bg-[#5A3214] transition-colors"
+                disabled={loading}
+                className="w-full md:w-auto px-8 py-4 rounded-2xl bg-[#6B3B16] text-white font-semibold shadow-sm hover:bg-[#5A3214] transition-colors disabled:bg-gray-400"
               >
-                Cadastrar Grátis &amp; Entrar
+                {loading ? "Cadastrando..." : "Cadastrar Grátis & Entrar"}
               </button>
             </div>
           </form>
@@ -202,4 +272,3 @@ export default function Cadastro() {
     </div>
   );
 }
-

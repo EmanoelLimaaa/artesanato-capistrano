@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { Link } from "react-router-dom"; 
 import { MapPin, Search, X, SlidersHorizontal, UserPlus, LogIn } from 'lucide-react';
+import { supabase } from "../lib/supabase"; 
 
 const FILTERS = ["Todos", "Argila", "Tecido", "Madeira", "Palha", "Outros"];
 
@@ -13,94 +15,84 @@ export default function Catalogo() {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const closeModal = () => setSelectedProduct(null);
 
-  // Produtos MOCK
-  const products = useMemo(
-    () => [
-      {
-        id: "vaso-argila",
-        material: "ARGILA",
-        artisan: "Elena Maria de Lourdes",
-        title: "Vaso de Argila Terracota Sagitário",
-        description:
-          "Vaso cilíndrico moldado inteiramente com as mãos e queimado em forno a lenha tradicional de barro. Apresenta pigmentação natural e detalhes ranhurados inspirados no semiárido cearense.",
-        price: 120,
-        tags: ["Argila", "Terracota"],
-        img: "",
-        artisanBio: "Trabalha há mais de 43 anos moldando o barro vermelho e criando vasos e panelas que contam histórias de nossa região.",
-        email: "marialourdes@capistrano.com"
-      },
-      {
-        id: "fruteira-barro",
-        material: "ARGILA",
-        artisan: "Elena Maria de Lourdes",
-        title: "Fruteira de Barro Rústica Escovada",
-        description:
-          "Forma rústica e escovada, feita para decorar e servir com autenticidade...",
-        price: 95,
-        img: "",
-        tags: ["Barro", "Rústico"],
-        artisanBio: "Trabalha há mais de 43 anos moldando o barro vermelho e criando vasos e panelas que contam histórias de nossa região.",
-        email: "marialourdes@capistrano.com"
-      },
-      {
-        id: "escultura-sao-francisco",
-        material: "MADEIRA",
-        artisan: "Seu Raimundo Nonato",
-        title: "Escultura de São Francisco em Sabiá",
-        description:
-          "Escultura detalhada em madeira, inspirada na tradição e no cuidado do artesão...",
-        price: 180,
-        img: "",
-        tags: ["Madeira", "Entalhe"],
-        artisanBio: "Mestre entalhador que transforma troncos caídos de sabiá em arte sacra e figuras típicas do sertão.",
-        email: "raimundo@capistrano.com"
-      },
-      {
-        id: "caminho-renda",
-        material: "TECIDO",
-        artisan: "Francisca das Chagas",
-        title: "Caminho de Mesa em Renda de Bilro",
-        description:
-          "Renda delicada com textura viva, perfeita para compor mesas e ambientes...",
-        price: 110,
-        img: "",
-        tags: ["Tecido", "Renda"],
-        artisanBio: "Rendeira tradicional que mantém viva a dança dos bilros sobre a almofada desde a sua juventude.",
-        email: "francisca@capistrano.com"
-      },
-      {
-        id: "cesto-carnauba",
-        material: "PALHA",
-        artisan: "Chico da Palha",
-        title: "Cesto Organizador Carnaúba Trançada",
-        description:
-          "Trançado com carnaúba, ideal para organização e decoração com estilo natural...",
-        price: 85,
-        img: "",
-        tags: ["Palha", "Trançado"],
-        artisanBio: "Artesão especialista no trançado rígido e maleável da palha de carnaúba nativa.",
-        email: "chico@capistrano.com"
-      },
-      {
-        id: "porta-copos-mandacaru",
-        material: "OUTROS",
-        artisan: "Francisca das Chagas",
-        title: "Porta-Copos Individuais Mandacaru",
-        description:
-          "Peça functional com acabamento artesanal, feita para valorizar o dia a dia...",
-        price: 75,
-        img: "",
-        tags: ["Palha", "Mandacaru"],
-        artisanBio: "Rendeira tradicional que mantém viva a dança dos bilros sobre a almofada desde a sua juventude.",
-        email: "francisca@capistrano.com"
-      },
-    ],
-    []
-  );
+  // CARREGAR DADOS DO SUPABASE
+  useEffect(() => {
+    async function carregarCatalogo() {
+      try {
+        setLoading(true);
+        
+        const { data, error } = await supabase
+          .from('produtos')
+          .select(`
+            id,
+            nome,
+            categoria,
+            descricao,
+            preco,
+            imagem,
+            artesaos (
+              nome,
+              biografia,
+              email,
+              whatsapp,
+              foto_perfil
+            )
+          `)
+          .order('id', { ascending: false });
 
+        if (error) throw error;
+
+        // Formata os dados
+        const produtosFormatados = data.map(item => {
+          // Se já tem URL completa (começa com http), usa direto
+          // Caso contrário,	constrói a URL pública normalmente
+          let urlCompletaImagem = null;
+
+          if (item.imagem) {
+            if (item.imagem.startsWith('http')) {
+              urlCompletaImagem = item.imagem;
+            } else {
+              const { data: publicUrlData } = supabase
+                .storage
+                .from('produtos')
+                .getPublicUrl(item.imagem);
+              urlCompletaImagem = publicUrlData?.publicUrl;
+            }
+          }
+
+          return {
+            id: item.id,
+            title: item.nome,
+            material: item.categoria ? item.categoria.toUpperCase() : "OUTROS",
+            description: item.descricao || "Sem descrição disponível.",
+            price: item.preco || 0,
+            img: urlCompletaImagem,
+            tags: [item.categoria || "Outros"],
+            artisan: item.artesaos?.nome || "Artesão Desconhecido",
+            artisanBio: item.artesaos?.biografia,
+            email: item.artesaos?.email,
+            whatsapp: item.artesaos?.whatsapp
+          };
+        });
+
+        setProducts(produtosFormatados);
+      } catch (err) {
+        console.error("Erro ao carregar catálogo:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarCatalogo();
+  }, []);
+
+  // Filtros aplicados em cima da lista dinâmica
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = products;
@@ -108,7 +100,9 @@ export default function Catalogo() {
     if (activeFilter !== "Todos") {
       const normalized = activeFilter.toLowerCase();
       list = list.filter((p) => {
-        if (activeFilter === "Outros") return !["argila", "tecido", "madeira", "palha"].includes(p.material.toLowerCase());
+        if (activeFilter === "Outros") {
+          return !["argila", "tecido", "madeira", "palha"].some(m => p.material.toLowerCase().includes(m));
+        }
         return p.material.toLowerCase().includes(normalized) || p.tags.some((t) => t.toLowerCase().includes(normalized));
       });
     }
@@ -144,28 +138,27 @@ export default function Catalogo() {
           </div>
 
           <nav className="flex items-center gap-6 text-sm">
-            <button
-              type="button"
-              onClick={() => (window.location.href = "/catalogo")}
+            <Link
+              to="/catalogo"
               className="rounded-full bg-[#A45A1F] px-5 py-2 text-white font-medium"
             >
               Catálogo Principal
-            </button>
+            </Link>
 
-            <a className="font-medium text-[#8B5A2B] hover:underline flex items-center gap-2" href="/cadastro">
+            <Link className="font-medium text-[#8B5A2B] hover:underline flex items-center gap-2" to="/cadastro">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#A45A1F] text-white">
                 <UserPlus size={13} className="stroke-[2.5]" />
               </span>
               Quero me Cadastrar
-            </a>
-            <button
-              type="button"
-              onClick={() => (window.location.href = "/login")}
+            </Link>
+            
+            <Link
+              to="/login"
               className="flex items-center gap-2 rounded-full border border-[#8B5A2B] px-4 py-2 font-medium hover:bg-white text-[#8B5A2B] transition-colors"
             >
               <LogIn size={16} />
               Entrar
-            </button>
+            </Link>
           </nav>
         </div>
       </header>
@@ -241,73 +234,87 @@ export default function Catalogo() {
 
           {/* Meta */}
           <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="text-sm text-[#3B2A22]">Exibindo {filtered.length} produtos únicos</div>
-            <button
-              type="button"
-              onClick={() => (window.location.href = "/login")}
+            <div className="text-sm text-[#3B2A22]">
+              {loading ? "Carregando peças..." : `Exibindo ${filtered.length} produtos únicos`}
+            </div>
+            <Link
+              to="/login"
               className="text-sm font-medium text-[#8B5A2B] hover:underline flex items-center gap-2"
             >
               <span aria-hidden>→</span>
               Entrar como artesão para expor peças
-            </button>
+            </Link>
           </div>
 
           {/* Grid */}
           <div className="mt-6 md:mt-8">
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.slice(0, 6).map((p) => (
-                <article
-                  key={p.id}
-                  className="overflow-hidden rounded-2xl bg-white border border-[#E7D7C8] shadow-sm"
-                >
-                  <div className="relative">
-                    <div className="h-44 w-full rounded-t-2xl bg-[#E7D7C8]/40" aria-label="Imagem do produto" />
-                    <div className="absolute left-3 top-3 rounded-full bg-[#FFF4D6] px-3 py-1 text-[11px] font-bold text-[#8B5A2B]">
-                      {p.material}
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <div className="text-xs font-medium text-[#7A6A60]">
-                      Por: {p.artisan}
-                    </div>
-
-                    <div className="mt-2 text-base font-semibold text-[#2B1B14]">{p.title}</div>
-
-                    <p className="mt-2 text-sm leading-relaxed text-[#3B2A22] line-clamp-2">
-                      {p.description}
-                    </p>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <div>
-                        <div className="text-[11px] font-semibold text-[#7A6A60]">ESTIMATIVA</div>
-                        <div className="text-base font-semibold text-[#2B1B14]">
-                          {formatPrice(p.price)}
+            {loading ? (
+              <div className="text-center py-12 text-[#8B5A2B] font-medium">Buscando obras em Capistrano...</div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((p) => (
+                  <article
+                    key={p.id}
+                    className="overflow-hidden rounded-2xl bg-white border border-[#E7D7C8] shadow-sm"
+                  >
+                    <div className="relative h-44 w-full bg-[#E7D7C8]/40">
+                      {p.img ? (
+                        <img 
+                          src={p.img} 
+                          alt={p.title} 
+                          className="h-full w-full object-cover rounded-t-2xl"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-xs text-[#7A6A60] italic">
+                          [Sem imagem]
                         </div>
+                      )}
+                      <div className="absolute left-3 top-3 rounded-full bg-[#FFF4D6] px-3 py-1 text-[11px] font-bold text-[#8B5A2B]">
+                        {p.material}
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      <div className="text-xs font-medium text-[#7A6A60]">
+                        Por: {p.artisan}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setSelectedProduct(p)}
-                        className="rounded-full bg-[#1B1614] px-4 py-2 text-sm font-medium text-white hover:bg-black"
-                      >
-                        Ver Detalhes <span aria-hidden>➔</span>
-                      </button>
+                      <div className="mt-2 text-base font-semibold text-[#2B1B14]">{p.title}</div>
+
+                      <p className="mt-2 text-sm leading-relaxed text-[#3B2A22] line-clamp-2">
+                        {p.description}
+                      </p>
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <div>
+                          <div className="text-[11px] font-semibold text-[#7A6A60]">ESTIMATIVA</div>
+                          <div className="text-base font-semibold text-[#2B1B14]">
+                            {formatPrice(p.price)}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProduct(p)}
+                          className="rounded-full bg-[#1B1614] px-4 py-2 text-sm font-medium text-white hover:bg-black"
+                        >
+                          Ver Detalhes <span aria-hidden>➔</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {/* Dropdown de Detalhes */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="relative w-full max-w-4xl bg-[#F9F9F9] rounded-3xl overflow-hidden shadow-2xl border border-[#E7D7C8] flex flex-col md:flex-row max-h-[90vh] md:max-h-[85vh]">
             
-            {/* Botão de Fechar */}
             <button
               type="button"
               onClick={closeModal}
@@ -316,17 +323,25 @@ export default function Catalogo() {
               <X size={20} />
             </button>
 
-            {/* Visual da Esquerda: Imagem */}
-            <div className="w-full md:w-1/2 bg-[#E7D7C8]/30 relative flex flex-col justify-between p-6 min-h-[250px] md:min-h-full">
-              <div className="flex-1 flex items-center justify-center text-center text-xs text-[#7A6A60] italic px-4">
-                [imagem do produto aqui]
-              </div>
-              <div className="absolute bottom-4 left-4 bg-[#6B3B16] text-white text-[10px] font-bold tracking-widest px-3 py-1 rounded-md shadow-sm">
+            {/* Imagem do Modal */}
+            <div className="w-full md:w-1/2 bg-[#E7D7C8]/30 relative flex flex-col justify-between min-h-[250px] md:min-h-full">
+              {selectedProduct.img ? (
+                <img 
+                  src={selectedProduct.img} 
+                  alt={selectedProduct.title} 
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-center text-xs text-[#7A6A60] italic px-4">
+                  [Sem imagem do produto]
+                </div>
+              )}
+              <div className="absolute bottom-4 left-4 bg-[#6B3B16] text-white text-[10px] font-bold tracking-widest px-3 py-1 rounded-md shadow-sm z-10">
                 SÉRIE LIMITADA
               </div>
             </div>
 
-            {/* Visual da Direita: Informações */}
+            {/* Informações do Modal */}
             <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto bg-white border-t md:border-t-0 md:border-l border-[#E7D7C8]">
               <div>
                 <span className="text-[11px] font-bold tracking-widest text-[#8B5A2B] uppercase">
@@ -364,20 +379,20 @@ export default function Catalogo() {
                   <div className="text-sm font-semibold text-[#2B1B14] mt-0.5">
                     {selectedProduct.artisan}
                   </div>
-                  <div className="text-[11px] text-[#8B5A2B] font-medium mt-0.5">
-                    {selectedProduct.material === "ARGILA" ? "Argila e Cerâmica" : selectedProduct.material}
-                  </div>
                   <p className="text-xs text-[#3B2A22] italic mt-1.5 leading-relaxed">
                     "{selectedProduct.artisanBio || "Dedica sua vida à preservação das técnicas e matérias-primas tradicionais da nossa terra."}"
                   </p>
                 </div>
               </div>
 
-              {/* Ações de Contato */}
+              {/* Ações de Contato Direto */}
               <div className="mt-6 pt-4 border-t border-[#E7D7C8] flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={() => window.open(`https://wa.me/00?text=Olá! Tenho interesse no ${selectedProduct.title}`, "_blank")}
+                  onClick={() => {
+                    const numero = selectedProduct.whatsapp ? selectedProduct.whatsapp.replace(/\D/g, '') : "00";
+                    window.open(`https://wa.me/${numero}?text=Olá! Vi o seu trabalho no portal Artesãos de Capistrano e tenho interesse na peça: ${selectedProduct.title}`, "_blank");
+                  }}
                   className="w-full py-2.5 rounded-full bg-[#8B4513] text-white text-sm font-medium hover:bg-[#6B3B16] transition-colors shadow-sm text-center"
                 >
                   Entrar em Contato direto via WhatsApp
