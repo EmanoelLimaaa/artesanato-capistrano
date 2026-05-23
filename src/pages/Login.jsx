@@ -1,6 +1,41 @@
+import { useState } from "react";
 import { LogIn, ArrowLeft } from "lucide-react";
+import { supabase } from "../lib/supabase"; 
 
 export default function Login() {
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    if (!email.trim() || !senha) {
+      alert("Por favor, preencha todos os campos.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Faz o login direto no sistema do Supabase Auth
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: senha,
+      });
+
+      if (error) throw error;
+
+      window.location.href = "/painel"; 
+
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao entrar: Verifique se o e-mail e a senha estão corretos.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F9F9F9] text-[#2B1B14]">
       {/* Header */}
@@ -51,13 +86,15 @@ export default function Login() {
                 </p>
               </div>
 
-              <form className="mt-8 flex flex-col gap-6" onSubmit={(e) => e.preventDefault()}>
+              <form className="mt-8 flex flex-col gap-6" onSubmit={handleLogin}>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold tracking-widest text-[#8B5A2B] uppercase">
                     Email Cadastrado
                   </label>
                   <input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@exemplo.com"
                     className="w-full rounded-xl border border-[#E7D7C8] bg-white px-4 py-3 text-sm text-[#2B1B14] outline-none placeholder:text-[#A07A55] focus:ring-2 focus:ring-[#A45A1F]/20 transition-all"
                   />
@@ -69,6 +106,8 @@ export default function Login() {
                   </label>
                   <input
                     type="password"
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
                     placeholder="*********"
                     className="w-full rounded-xl border border-[#E7D7C8] bg-white px-4 py-3 text-sm text-[#2B1B14] outline-none placeholder:text-[#A07A55] focus:ring-2 focus:ring-[#A45A1F]/20 transition-all"
                   />
@@ -76,9 +115,10 @@ export default function Login() {
 
                 <button
                   type="submit"
-                  className="mt-2 w-full rounded-2xl bg-[#6B3B16] py-4 text-sm font-bold text-white hover:bg-[#5A3214] transition-colors"
+                  disabled={loading}
+                  className="mt-2 w-full rounded-2xl bg-[#6B3B16] py-4 text-sm font-bold text-white hover:bg-[#5A3214] transition-colors disabled:bg-gray-400"
                 >
-                  Entrar no Painel
+                  {loading ? "Entrando..." : "Entrar no Painel"}
                 </button>
               </form>
             </div>
