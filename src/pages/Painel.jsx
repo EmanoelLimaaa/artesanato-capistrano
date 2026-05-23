@@ -24,6 +24,8 @@ export default function Painel() {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadingFotoPerfil, setUploadingFotoPerfil] = useState(false);
+  const [fotoPerfil, setFotoPerfil] = useState("");
 
   // Estados dos Modais e Telas
   const [mostrarEdicao, setMostrarEdicao] = useState(false);
@@ -75,6 +77,7 @@ export default function Painel() {
           biografia: perfilData.biografia || "",
           telefone: perfilData.whatsapp || "",
         });
+        setFotoPerfil(perfilData.foto_perfil || "");
 
         // 3. Busca apenas as peças do artesão específico
         const { data: produtosData, error: produtosError } = await supabase
@@ -95,12 +98,12 @@ export default function Painel() {
     carregarDados();
   }, []);
 
-  // Inicial do nome do Artesão para o avaatar
+  // Inicial do nome do Artesão para o avatar
   const iniciais = artesao?.nome
     ? artesao.nome
         .split(" ")
         .slice(0, 2)
-        .map((n) => n)
+        .map((palavra) => palavra.charAt(0))
         .join("")
         .toUpperCase()
     : "AR";
@@ -111,7 +114,60 @@ export default function Painel() {
     window.location.href = "/login";
   };
 
-  // Salvar alterações de perfil no Banco
+  // Salvar alterações de foto de perfil para o bucket imagens
+  const handleUploadFotoPerfil = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      alert("Nenhum arquivo selecionado.");
+      return;
+    }
+
+
+    try {
+      setUploadingFotoPerfil(true);
+
+      const fileExt = file.name ? file.name.split(".").pop().toLowerCase() : "jpg";
+      const fileName = `perfis/${user.id}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const detectType = file.type || `image/${fileExt === "png" ? "png" : "jpeg"}`;
+
+      // Aponta para o bucket imagens
+      const { error: uploadError } = await supabase.storage
+        .from("imagens")
+        .upload(fileName, file, {
+          contentType: detectType,
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("imagens")
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from("artesaos")
+        .update({ foto_perfil: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      setFotoPerfil(publicUrl);
+      setArtesao((prev) => ({
+        ...prev,
+        foto_perfil: publicUrl,
+      }));
+
+      alert("Foto do perfil atualizada com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar foto do perfil:", err);
+      alert("Erro ao atualizar foto do perfil: " + err.message);
+    } finally {
+      if (e.target) e.target.value = "";
+      setUploadingFotoPerfil(false);
+    }
+  };
+
   const salvarPerfil = async (e) => {
     e.preventDefault();
     try {
@@ -136,18 +192,20 @@ export default function Painel() {
       }));
 
       setMostrarEdicao(false);
-      alert("Perfil atualizado com sucesso!");
+      alert("Foto de perfil atualizada!");
     } catch (err) {
       alert("Erro ao atualizar perfil: " + err.message);
     }
   };
 
+  // Upload da imagem
   const handleUploadImagem = async (e) => {
     const file = e.target.files?.[0];
     if (!file) {
       alert("Nenhum arquivo selecionado.");
       return;
     }
+
 
     try {
       setUploading(true);
@@ -156,9 +214,6 @@ export default function Painel() {
       const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
       const detectType = file.type || `image/${fileExt === "png" ? "png" : "jpeg"}`;
 
-      console.log(`Enviando arquivo real: ${file.name} (${file.size} bytes) - Tipo: ${detectType}`);
-
-      // 3. Faz o upload da imagem 
       const { error: uploadError } = await supabase.storage
         .from("produtos")
         .upload(fileName, file, {
@@ -169,7 +224,6 @@ export default function Painel() {
 
       if (uploadError) throw uploadError;
 
-      // 4. Captura a URL pública definitiva
       const { data: { publicUrl } } = supabase.storage
         .from("produtos")
         .getPublicUrl(fileName);
@@ -181,13 +235,12 @@ export default function Painel() {
       console.error("Erro no upload:", error);
       alert("Erro no upload da imagem: " + error.message);
     } finally {
-      // Reseta o input para permitir reenvios do mesmo arquivo
       if (e.target) e.target.value = "";
       setUploading(false);
     }
   };
 
-  // Adicionar um novo produto no Banco vinculado ao ID do artesão
+  // Adicionar um novo produto preenchendo 'preco' e 'preco_sugerido' para manter compatibilidade com a estrutura antiga do banco
   const adicionarProduto = async (e) => {
     e.preventDefault();
     if (!novoProduto.nome || !novoProduto.preco) {
@@ -196,6 +249,8 @@ export default function Painel() {
     }
 
     try {
+      const valorNumerico = parseFloat(novoProduto.preco);
+
       const { data, error } = await supabase
         .from("produtos")
         .insert([
@@ -204,7 +259,8 @@ export default function Painel() {
             nome: novoProduto.nome,
             descricao: novoProduto.descricao,
             categoria: novoProduto.categoria || "ARGILA E CERÂMICA",
-            preco: parseFloat(novoProduto.preco),
+            preco_sugerido: valorNumerico, // Mantém compatibilidade com coluna antiga
+            preco: valorNumerico,          // Atualiza a nova coluna mapeada no banco
             imagem: novoProduto.imagem || null,
           },
         ])
@@ -284,7 +340,11 @@ export default function Painel() {
             {/* Lado Esquerdo */}
             <div className="flex items-start gap-4 md:gap-6">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#FFF4D6] overflow-hidden">
-                <span className="text-2xl font-bold text-[#6B3B16]">{iniciais}</span>
+                {fotoPerfil ? (
+                  <img src={fotoPerfil} alt="Foto do perfil" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-bold text-[#6B3B16]">{iniciais}</span>
+                )}
               </div>
 
               <div className="flex flex-col gap-3">
@@ -384,7 +444,9 @@ export default function Painel() {
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row items-start sm:items-center justify-between border-t border-[#E7D7C8] pt-4">
                       <div>
                         <div className="text-[10px] font-semibold text-[#7A6A60] uppercase">Valor Sugerido</div>
-                        <div className="text-base font-bold text-[#A45A1F]">{formatPrice(produto.preco)}</div>
+                        <div className="text-base font-bold text-[#A45A1F]">
+                          {formatPrice(produto.preco !== undefined && produto.preco !== null ? produto.preco : produto.preco_sugerido)}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -421,6 +483,31 @@ export default function Painel() {
               </button>
             </div>
             <form onSubmit={salvarPerfil} className="p-4 sm:p-6 flex flex-col gap-4 overflow-y-auto">
+              <div>
+                <label className="text-[10px] font-bold tracking-widest text-[#8B5A2B] uppercase block mb-1">
+                  Foto do perfil
+                </label>
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-[#E7D7C8] bg-[#F5EFE6]/30 p-4">
+                  <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center bg-[#FFF4D6]">
+                    {fotoPerfil ? (
+                      <img src={fotoPerfil} alt="Foto do perfil" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-base font-bold text-[#6B3B16]">{iniciais}</span>
+                    )}
+                  </div>
+                  <label className="flex flex-col items-center gap-2 cursor-pointer text-sm text-[#8B5A2B] hover:text-[#A45A1F]">
+                    <Upload size={20} strokeWidth={1.5} />
+                    <span>{uploadingFotoPerfil ? "Enviando..." : "Clique para atualizar"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleUploadFotoPerfil}
+                      disabled={uploadingFotoPerfil}
+                    />
+                  </label>
+                </div>
+              </div>
               <div>
                 <label className="text-[10px] font-bold tracking-widest text-[#8B5A2B] uppercase">Nome Completo</label>
                 <input
@@ -599,7 +686,7 @@ export default function Painel() {
                 <div className="mt-4 border-b border-[#E7D7C8] pb-3">
                   <span className="text-[10px] font-bold text-[#7A6A60] uppercase tracking-wider block">Preço Estimado</span>
                   <div className="text-xl font-bold text-[#A45A1F] mt-0.5">
-                    {formatPrice(produtoSelecionado.preco)}{" "}
+                    {formatPrice(produtoSelecionado.preco !== undefined && produtoSelecionado.preco !== null ? produtoSelecionado.preco : produtoSelecionado.preco_sugerido)}{" "}
                     <span className="text-xs font-normal text-[#7A6A60] italic">(conforme tamanho/detalhe)</span>
                   </div>
                 </div>
@@ -632,7 +719,6 @@ export default function Painel() {
           <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-[#E9E1D9]">
             Uma vitrine digital de preservação e comércio direto para fomentar a economia criativa do interior do Ceará, conectando saberes ancestrais ao comércio solidário.
           </p>
-          <div className="mt-6 text-sm font-medium">© 2026 Capistrano - CE.</div>
         </div>
       </footer>
     </div>
