@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom"; 
 import { MapPin, Search, X, SlidersHorizontal, UserPlus, LogIn } from 'lucide-react';
-import { supabase } from "../lib/supabase"; 
+import { supabase } from "../lib/supabase";
+import logo from "../assets/logo.png";
 
 const FILTERS = ["Todos", "Argila", "Tecido", "Madeira", "Palha", "Outros"];
 
@@ -120,11 +121,11 @@ export default function Catalogo() {
       {/* Header */}
       <header className="mx-auto max-w-6xl px-4 pt-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden">
+          <div className="flex items-center gap-5">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full overflow-hidden">
               <img
-                src="/src/assets/logo.png"
-                alt="Logo"
+                src={logo}
+                alt="logo"
                 className="h-full w-full rounded-full object-cover object-center"
                 style={{ imageRendering: "auto" }}
               />
