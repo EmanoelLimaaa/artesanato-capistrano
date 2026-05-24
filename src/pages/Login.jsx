@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { LogIn, ArrowLeft } from "lucide-react";
-import { supabase } from "../lib/supabase"; 
+import { supabase } from "../lib/supabase";
+import logo from "../assets/logo.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -68,11 +69,11 @@ export default function Login() {
       {/* Header */}
       <header className="mx-auto max-w-6xl px-4 pt-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden">
+          <div className="flex items-center gap-5">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full overflow-hidden">
               <img
-                src="/src/assets/logo.png"
-                alt="Logo"
+                src={logo}
+                alt="logo"
                 className="h-full w-full rounded-full object-cover object-center"
               />
             </div>
