@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link } from "react-router-dom"; 
-import { MapPin, Search, X, SlidersHorizontal, UserPlus, LogIn } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { MapPin, Search, X, SlidersHorizontal, UserPlus, LogIn, Menu } from 'lucide-react';
 import { supabase } from "../lib/supabase";
 import logo from "../assets/logo.png";
+
 
 const FILTERS = ["Todos", "Argila", "Tecido", "Madeira", "Palha", "Outros"];
 
@@ -16,9 +17,11 @@ export default function Catalogo() {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
 
   const closeModal = () => setSelectedProduct(null);
 
@@ -51,8 +54,6 @@ export default function Catalogo() {
 
         // Formata os dados
         const produtosFormatados = data.map(item => {
-          // Se já tem URL completa (começa com http), usa direto
-          // Caso contrário,	constrói a URL pública normalmente
           let urlCompletaImagem = null;
 
           if (item.imagem) {
@@ -122,6 +123,7 @@ export default function Catalogo() {
       <header className="mx-auto max-w-6xl px-4 pt-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-5">
+
             <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full overflow-hidden">
               <img
                 src={logo}
@@ -138,7 +140,18 @@ export default function Catalogo() {
             </div>
           </div>
 
-          <nav className="flex items-center gap-6 text-sm">
+          {/* Botão hamburguer (mobile) */}
+          <button
+            type="button"
+            className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#8B5A2B] bg-white/70 p-2 text-[#8B5A2B]"
+            aria-label="Abrir menu"
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            <Menu size={20} />
+          </button>
+
+          {/* Menu desktop */}
+          <nav className="hidden sm:flex items-center gap-6 text-sm">
             <Link
               to="/catalogo"
               className="rounded-full bg-[#A45A1F] px-5 py-2 text-white font-medium"
@@ -146,7 +159,10 @@ export default function Catalogo() {
               Catálogo Principal
             </Link>
 
-            <Link className="font-medium text-[#8B5A2B] hover:underline flex items-center gap-2" to="/cadastro">
+            <Link
+              className="font-medium text-[#8B5A2B] hover:underline flex items-center gap-2"
+              to="/cadastro"
+            >
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#A45A1F] text-white">
                 <UserPlus size={13} className="stroke-[2.5]" />
               </span>
@@ -161,6 +177,41 @@ export default function Catalogo() {
               Entrar
             </Link>
           </nav>
+
+          {/* Menu mobile */}
+          <div className={`sm:hidden absolute left-0 right-0 top-[88px] z-40 ${menuOpen ? 'block' : 'hidden'}`}>
+            <div className="mx-auto max-w-6xl px-4 pt-3">
+              <div className="rounded-3xl border border-[#E7D7C8] bg-white/95 backdrop-blur shadow-lg p-4 flex flex-col gap-3">
+                <Link
+                  to="/catalogo"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full text-center rounded-full bg-[#A45A1F] px-5 py-2 text-white font-medium"
+                >
+                  Catálogo Principal
+                </Link>
+
+                <Link
+                  to="/cadastro"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full text-center font-medium text-[#8B5A2B] hover:underline flex items-center justify-center gap-2"
+                >
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#A45A1F] text-white">
+                    <UserPlus size={13} className="stroke-[2.5]" />
+                  </span>
+                  Quero me Cadastrar
+                </Link>
+
+                <Link
+                  to="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full text-center flex items-center justify-center gap-2 rounded-full border border-[#8B5A2B] px-4 py-2 font-medium hover:bg-white text-[#8B5A2B] transition-colors"
+                >
+                  <LogIn size={16} />
+                  Entrar
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
