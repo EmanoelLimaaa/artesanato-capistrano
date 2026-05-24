@@ -316,11 +316,10 @@ export default function Painel() {
             <div className="leading-tight">
               <div className="text-lg font-semibold">Artesanato de Capistrano</div>
               <div className="text-[11px] font-medium tracking-wide text-[#8B5A2B]">
-                SERRAS DE BATURITÉ - CE
+                Capistrano - CE
               </div>
             </div>
           </div>
-
           <nav className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm">
             <a href="/catalogo" className="font-medium text-[#8B5A2B] hover:underline">
               Catálogo Principal
