@@ -80,7 +80,6 @@ export default function Cadastro() {
     e.preventDefault();
     if (!validate() || loading) return;
 
-    // File selecionado para upload (preview já está feito)
     const inputEl = document.querySelector('input[name="foto_perfil"]');
     const file = (inputEl && inputEl.files && inputEl.files[0]) ? inputEl.files[0] : null;
 
@@ -97,8 +96,6 @@ export default function Cadastro() {
 
       const user = authData?.user;
 
-      // Compatibilidade com confirmação de email: se o usuário não existir ainda,
-      // não tentamos inserir perfil nem upload.
       if (!user) {
         alert(
           "Cadastro criado com sucesso! Confirme seu e-mail para ativar sua conta. Depois disso você poderá fazer login e gerenciar suas peças."
