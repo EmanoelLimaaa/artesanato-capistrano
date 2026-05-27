@@ -80,6 +80,10 @@ export default function Cadastro() {
     e.preventDefault();
     if (!validate() || loading) return;
 
+    // File selecionado para upload (preview já está feito)
+    const inputEl = document.querySelector('input[name="foto_perfil"]');
+    const file = (inputEl && inputEl.files && inputEl.files[0]) ? inputEl.files[0] : null;
+
     try {
       setLoading(true);
 
@@ -92,30 +96,64 @@ export default function Cadastro() {
       if (authError) throw authError;
 
       const user = authData?.user;
-      if (user) {
-        const { error: perfilError } = await supabase
-          .from("artesaos")
-          .insert([
-            {
-              id: user.id, 
-              nome: form.nomeCompleto,
-              email: form.email,
-              whatsapp: form.celular.replace(/\D/g, ""),
-              biografia: form.biografia,
-              especialidade: MAP_BANCO[form.especialidade] || "OUTROS",
-            },
-          ]);
 
-        if (perfilError) throw perfilError;
-
-        alert("Cadastro realizado com sucesso! Faça seu login para gerenciar suas peças.");
-        window.location.href = "/login";
-      } else {
+      // Compatibilidade com confirmação de email: se o usuário não existir ainda,
+      // não tentamos inserir perfil nem upload.
+      if (!user) {
         alert(
           "Cadastro criado com sucesso! Confirme seu e-mail para ativar sua conta. Depois disso você poderá fazer login e gerenciar suas peças."
         );
         window.location.href = "/login";
+        return;
       }
+
+      let fotoPerfilUrl = null;
+
+      // 2) Upload automático para Storage (bucket: imagens)
+      if (file) {
+        try {
+          const fileExt = file.name ? file.name.split(".").pop().toLowerCase() : "jpg";
+          const fileName = `perfis/${user.id}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          const detectType = file.type || `image/${fileExt === "png" ? "png" : "jpeg"}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("imagens")
+            .upload(fileName, file, {
+              contentType: detectType,
+              cacheControl: "3600",
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage.from("imagens").getPublicUrl(fileName);
+          fotoPerfilUrl = data?.publicUrl || null;
+        } catch (uploadErr) {
+          console.error("Erro ao fazer upload da foto no cadastro:", uploadErr);
+          alert("Erro ao enviar a foto de perfil: " + uploadErr.message);
+          throw uploadErr;
+        }
+      }
+
+      // 3) Insert automático na tabela `artesaos`
+      const { error: perfilError } = await supabase
+        .from("artesaos")
+        .insert([
+          {
+            id: user.id,
+            nome: form.nomeCompleto,
+            email: form.email,
+            whatsapp: form.celular.replace(/\D/g, ""),
+            biografia: form.biografia,
+            especialidade: MAP_BANCO[form.especialidade] || "OUTROS",
+            foto_perfil: fotoPerfilUrl,
+          },
+        ]);
+
+      if (perfilError) throw perfilError;
+
+      alert("Cadastro realizado com sucesso! Faça seu login para gerenciar suas peças.");
+      window.location.href = "/login";
     } catch (err) {
       console.error(err);
       alert("Erro ao cadastrar: " + err.message);
