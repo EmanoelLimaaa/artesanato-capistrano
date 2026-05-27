@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
-import { supabase } from "../lib/supabase"; 
+import { supabase } from "../lib/supabase";
 
 const ESTADO_INICIAL = {
   nomeCompleto: "",
-  especialidade: "ARGILA E CERÂMICA", 
+  especialidade: "ARGILA E CERÂMICA",
   biografia: "",
   celular: "",
   email: "",
-  senha: "", 
+  senha: "",
 };
 
 const MAP_BANCO = {
@@ -15,13 +15,15 @@ const MAP_BANCO = {
   "Têxtil e Bordado (Tear)": "TÊXTIL E BORDADO",
   "Madeira e Entalhe": "MADEIRA E ENTALHE",
   "Palha e Trançado (Carnaúba/Palha)": "PALHA E TRANÇADO",
-  "Outros (Artesanato Variado)": "OUTROS"
+  "Outros (Artesanato Variado)": "OUTROS",
 };
 
 export default function Cadastro() {
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const [fotoPreviewUrl, setFotoPreviewUrl] = useState("");
 
   const especialidades = useMemo(
     () => [
@@ -62,14 +64,29 @@ export default function Cadastro() {
     return Object.keys(nextErrors).length === 0;
   };
 
+  const handleFotoPerfilChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFotoPreviewUrl("");
+      return;
+    }
+
+    // Preview local da imagem selecionada 
+    const url = URL.createObjectURL(file);
+    setFotoPreviewUrl(url);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate() || loading) return;
 
+    const inputEl = document.querySelector('input[name="foto_perfil"]');
+    const file = (inputEl && inputEl.files && inputEl.files[0]) ? inputEl.files[0] : null;
+
     try {
       setLoading(true);
 
-      // 1. Cria a autenticação do usuarioo
+      // 1) Cria a autenticação do usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.senha,
@@ -79,26 +96,60 @@ export default function Cadastro() {
 
       const user = authData?.user;
 
-      if (user) {
-        const { error: perfilError } = await supabase
-          .from('artesaos')
-          .insert([
-            {
-              id: user.id, 
-              nome: form.nomeCompleto,
-              email: form.email,
-              whatsapp: form.celular.replace(/\D/g, ""), 
-              biografia: form.biografia,
-              especialidade: MAP_BANCO[form.especialidade] || "OUTROS" 
-            }
-          ]);
-
-        if (perfilError) throw perfilError;
-
-        alert("Cadastro realizado com sucesso! Faça seu login para gerenciar suas peças.");
+      if (!user) {
+        alert(
+          "Cadastro criado com sucesso! Confirme seu e-mail para ativar sua conta. Depois disso você poderá fazer login e gerenciar suas peças."
+        );
         window.location.href = "/login";
+        return;
       }
 
+      let fotoPerfilUrl = null;
+
+      if (file) {
+        try {
+          const fileExt = file.name ? file.name.split(".").pop().toLowerCase() : "jpg";
+          const fileName = `perfis/${user.id}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          const detectType = file.type || `image/${fileExt === "png" ? "png" : "jpeg"}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("imagens")
+            .upload(fileName, file, {
+              contentType: detectType,
+              cacheControl: "3600",
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage.from("imagens").getPublicUrl(fileName);
+          fotoPerfilUrl = data?.publicUrl || null;
+        } catch (uploadErr) {
+          console.error("Erro ao fazer upload da foto no cadastro:", uploadErr);
+          alert("Erro ao enviar a foto de perfil: " + uploadErr.message);
+          throw uploadErr;
+        }
+      }
+
+      // 3) Insert automático na tabela `artesaos`
+      const { error: perfilError } = await supabase
+        .from("artesaos")
+        .insert([
+          {
+            id: user.id,
+            nome: form.nomeCompleto,
+            email: form.email,
+            whatsapp: form.celular.replace(/\D/g, ""),
+            biografia: form.biografia,
+            especialidade: MAP_BANCO[form.especialidade] || "OUTROS",
+            foto_perfil: fotoPerfilUrl,
+          },
+        ]);
+
+      if (perfilError) throw perfilError;
+
+      alert("Cadastro realizado com sucesso! Faça seu login para gerenciar suas peças.");
+      window.location.href = "/login";
     } catch (err) {
       console.error(err);
       alert("Erro ao cadastrar: " + err.message);
@@ -142,6 +193,40 @@ export default function Cadastro() {
                     hasError("nomeCompleto") ? "border-red-400" : ""
                   }`}
                 />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="block text-xs font-bold tracking-widest text-[#8B5A2B] uppercase">
+                  Foto de perfil (opcional)
+                </label>
+
+                <div className="mt-2 rounded-2xl border border-[#E7D7C8] bg-white px-4 py-3">
+                  <label className="flex items-center justify-center cursor-pointer rounded-xl border border-[#E7D7C8] px-4 py-3 text-sm font-medium text-[#8B5A2B] hover:bg-[#FFF4D6] transition-colors select-none">
+                    <span>Selecionar imagem</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={loading}
+                      name="foto_perfil"
+                      onChange={handleFotoPerfilChange}
+                    />
+                  </label>
+
+                  {fotoPreviewUrl ? (
+                    <div className="mt-3 flex items-center justify-center">
+                      <img
+                        src={fotoPreviewUrl}
+                        alt="Prévia da foto de perfil"
+                        className="h-24 w-24 rounded-full object-cover border border-[#E7D7C8] bg-[#FFF4D6]"
+                      />
+                    </div>
+                  ) : null}
+
+                  <p className="mt-2 text-xs text-[#A07A55]">
+                    (A foto será usada quando você atualizar o perfil no painel.)
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -216,7 +301,6 @@ export default function Cadastro() {
                 />
               </div>
 
-              {/* Novo Campo Adicionado: Senha para login */}
               <div>
                 <label className="block text-xs font-bold tracking-widest text-[#8B5A2B] uppercase">
                   Senha de Acesso <span className="text-[#A45A1F]">*</span>
@@ -264,9 +348,7 @@ export default function Cadastro() {
           <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-[#E9E1D9]">
             Uma vitrine digital de preservação e comércio direto para fomentar a economia criativa do interior do Ceará, conectando saberes ancestrais ao comércio solidário.
           </p>
-          <div className="mt-6 text-sm font-medium">
-            © 2026 Capistrano - CE.
-          </div>
+          <div className="mt-6 text-sm font-medium">© 2026 Capistrano - CE.</div>
         </div>
       </footer>
     </div>
