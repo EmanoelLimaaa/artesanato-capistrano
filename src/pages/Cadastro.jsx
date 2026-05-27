@@ -106,7 +106,6 @@ export default function Cadastro() {
 
       let fotoPerfilUrl = null;
 
-      // 2) Upload automático para Storage (bucket: imagens)
       if (file) {
         try {
           const fileExt = file.name ? file.name.split(".").pop().toLowerCase() : "jpg";
