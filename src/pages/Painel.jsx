@@ -68,17 +68,26 @@ export default function Painel() {
           .from("artesaos")
           .select("*")
           .eq("id", sessionUser.id)
-          .single();
+          .maybeSingle();
+
 
         if (perfilError) throw perfilError;
-        setArtesao(perfilData);
-        setFormPerfil({
-          nome: perfilData.nome,
-          especialidade: perfilData.especialidade,
-          biografia: perfilData.biografia || "",
-          telefone: perfilData.whatsapp || "",
-        });
-        setFotoPerfil(perfilData.foto_perfil || "");
+
+        if (!perfilData) {
+          setArtesao(null);
+          setFormPerfil((prev) => ({ ...prev, nome: "", biografia: "", telefone: "" }));
+          setFotoPerfil("");
+        } else {
+          setArtesao(perfilData);
+          setFormPerfil({
+            nome: perfilData.nome,
+            especialidade: perfilData.especialidade,
+            biografia: perfilData.biografia || "",
+            telefone: perfilData.whatsapp || "",
+          });
+          setFotoPerfil(perfilData.foto_perfil || "");
+        }
+
 
         // 3. Busca apenas as peças do artesão específico
         const { data: produtosData, error: produtosError } = await supabase
