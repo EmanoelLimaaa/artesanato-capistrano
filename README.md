@@ -2,7 +2,7 @@
 
 > Vitrine digital para valorizar, divulgar e conectar os artesãos de **Capistrano - CE**.
 
-O projeto reúne um **catálogo público** de peças artesanais e um **painel administrativo** para que artesãos possam gerenciar seus produtos, dados de perfil e imagens de forma simples.
+O projeto reúne um **catálogo público** de peças artesanais e um **painel administrativo** para que artesãos possam gerenciar seus produtos, dados do perfil e poder editar.
 
 ---
 
