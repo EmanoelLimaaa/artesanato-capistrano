@@ -25,7 +25,6 @@ export default function Catalogo() {
 
   const closeModal = () => setSelectedProduct(null);
 
-  // CARREGAR DADOS DO SUPABASE
   useEffect(() => {
     async function carregarCatalogo() {
       try {
@@ -52,7 +51,6 @@ export default function Catalogo() {
 
         if (error) throw error;
 
-        // Formata os dados
         const produtosFormatados = data.map(item => {
           let urlCompletaImagem = null;
 
@@ -94,7 +92,6 @@ export default function Catalogo() {
     carregarCatalogo();
   }, []);
 
-  // Filtros aplicados em cima da lista dinâmica
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = products;
@@ -119,7 +116,6 @@ export default function Catalogo() {
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] text-[#2B1B14]">
-      {/* Header */}
       <header className="mx-auto max-w-6xl px-4 pt-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-5">
@@ -140,7 +136,6 @@ export default function Catalogo() {
             </div>
           </div>
 
-          {/* Botão hamburguer (mobile) */}
           <button
             type="button"
             className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#8B5A2B] bg-white/70 p-2 text-[#8B5A2B]"
@@ -150,7 +145,6 @@ export default function Catalogo() {
             <Menu size={20} />
           </button>
 
-          {/* Menu desktop */}
           <nav className="hidden sm:flex items-center gap-6 text-sm">
             <Link
               to="/catalogo"
@@ -178,7 +172,6 @@ export default function Catalogo() {
             </Link>
           </nav>
 
-          {/* Menu mobile */}
           <div className={`sm:hidden absolute left-0 right-0 top-[88px] z-40 ${menuOpen ? 'block' : 'hidden'}`}>
             <div className="mx-auto max-w-6xl px-4 pt-3">
               <div className="rounded-3xl border border-[#E7D7C8] bg-white/95 backdrop-blur shadow-lg p-4 flex flex-col gap-3">
@@ -215,7 +208,6 @@ export default function Catalogo() {
         </div>
       </header>
 
-      {/* Hero */}
       <section className="mx-auto max-w-6xl px-4 pb-10 pt-4">
         <div className="rounded-3xl bg-white/70 p-6 md:p-10 backdrop-blur">
           <div className="flex flex-col items-center text-center">
@@ -234,7 +226,6 @@ export default function Catalogo() {
             </p>
           </div>
 
-          {/* Search */}
           <div className="mx-auto mt-6 md:mt-8 max-w-3xl">
             <div className="flex items-center gap-3 rounded-full border border-[#8B5A2B] bg-white px-4 py-3 focus-within:ring-2 focus-within:ring-[#A45A1F]/20 transition-all">
               <Search size={20} className="text-[#8B5A2B] shrink-0" />
@@ -256,7 +247,6 @@ export default function Catalogo() {
             </div>
           </div>
 
-          {/* Filters */}
           <div className="mt-6 md:mt-8 grid grid-cols-1 gap-4 md:grid-cols-[180px,1fr] md:items-center">
             <div className="text-sm font-semibold text-[#8B5A2B] flex items-center gap-2 tracking-wider">
               <SlidersHorizontal size={16} className="stroke-[2.5]" />
@@ -284,7 +274,6 @@ export default function Catalogo() {
             </div>
           </div>
 
-          {/* Meta */}
           <div className="mt-4 flex items-center justify-between gap-4">
             <div className="text-sm text-[#3B2A22]">
               {loading ? "Carregando peças..." : `Exibindo ${filtered.length} produtos únicos`}
@@ -298,7 +287,6 @@ export default function Catalogo() {
             </Link>
           </div>
 
-          {/* Grid */}
           <div className="mt-6 md:mt-8">
             {loading ? (
               <div className="text-center py-12 text-[#8B5A2B] font-medium">Buscando obras em Capistrano...</div>
@@ -362,7 +350,6 @@ export default function Catalogo() {
         </div>
       </section>
 
-      {/* Dropdown de Detalhes */}
       {selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="relative w-full max-w-4xl bg-[#F9F9F9] rounded-3xl overflow-hidden shadow-2xl border border-[#E7D7C8] flex flex-col md:flex-row max-h-[90vh] md:max-h-[85vh]">
@@ -375,7 +362,6 @@ export default function Catalogo() {
               <X size={20} />
             </button>
 
-            {/* Imagem do Modal */}
             <div className="w-full md:w-1/2 bg-[#E7D7C8]/30 relative flex flex-col justify-between min-h-[250px] md:min-h-full">
               {selectedProduct.img ? (
                 <img 
@@ -393,7 +379,6 @@ export default function Catalogo() {
               </div>
             </div>
 
-            {/* Informações do Modal */}
             <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto bg-white border-t md:border-t-0 md:border-l border-[#E7D7C8]">
               <div>
                 <span className="text-[11px] font-bold tracking-widest text-[#8B5A2B] uppercase">
@@ -437,7 +422,6 @@ export default function Catalogo() {
                 </div>
               </div>
 
-              {/* Ações de Contato Direto */}
               <div className="mt-6 pt-4 border-t border-[#E7D7C8] flex flex-col gap-3">
                 <button
                   type="button"
@@ -459,7 +443,6 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* Footer */}
       <footer className="mt-8 bg-[#2B1B14]">
         <div className="mx-auto max-w-6xl px-4 py-12 text-center text-white">
           <div className="text-2xl font-semibold">Artesanato de Capistrano</div>

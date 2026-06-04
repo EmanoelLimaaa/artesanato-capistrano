@@ -66,7 +66,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] text-[#2B1B14]">
-      {/* Header */}
       <header className="mx-auto max-w-6xl px-4 pt-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-5">
@@ -95,7 +94,6 @@ export default function Login() {
         </div>
       </header>
 
-      {/* Card Central */}
       <main className="mx-auto max-w-5xl px-4 py-10">
         <div className="flex justify-center">
           <div className="w-full max-w-sm">
@@ -114,7 +112,6 @@ export default function Login() {
                 </p>
               </div>
 
-              {/* Formulário 1: login */}
               <form className="mt-8 flex flex-col gap-6" onSubmit={handleLogin}>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold tracking-widest text-[#8B5A2B] uppercase">
@@ -161,7 +158,6 @@ export default function Login() {
                 </div>
               </form>
 
-              {/* Seção 2: recuperação de senha */}
               {mostrarReset && (
                 <div className="mt-6 border-t border-[#E7D7C8] pt-6">
                   <form onSubmit={handleResetPassword} className="flex flex-col gap-3">
@@ -198,7 +194,6 @@ export default function Login() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="mt-8 bg-[#2B1B14]">
         <div className="mx-auto max-w-6xl px-4 py-12 text-center text-white">
           <div className="text-2xl font-semibold">Artesanato de Capistrano</div>

@@ -19,7 +19,6 @@ const formatPrice = (value) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 export default function Painel() {
-  // Estados do Banco de Dados
   const [user, setUser] = useState(null);
   const [artesao, setArtesao] = useState(null);
   const [produtos, setProdutos] = useState([]);
@@ -28,12 +27,10 @@ export default function Painel() {
   const [uploadingFotoPerfil, setUploadingFotoPerfil] = useState(false);
   const [fotoPerfil, setFotoPerfil] = useState("");
 
-  // Estados dos Modais e Telas
   const [mostrarEdicao, setMostrarEdicao] = useState(false);
   const [mostrarNovoProduto, setMostrarNovoProduto] = useState(false);
   const [produtoSelecionado, setProdutoSelecionado] = useState(null);
 
-  // Formulários
   const [formPerfil, setFormPerfil] = useState({
     nome: "",
     especialidade: "ARGILA E CERÂMICA",
@@ -49,13 +46,11 @@ export default function Painel() {
     imagem: "",
   });
 
-  // Carrega os dados do usuário autenticado ao montar o componente
   useEffect(() => {
     async function carregarDados() {
       try {
         setLoading(true);
         
-        // 1. Pega o usuário logado no Auth do Supabase
         const { data: { user: sessionUser }, error: userError } = await supabase.auth.getUser();
         if (userError || !sessionUser) {
           window.location.href = "/login";
@@ -63,7 +58,6 @@ export default function Painel() {
         }
         setUser(sessionUser);
 
-        // 2. Busca o perfil do artesão na tabela pública
         const { data: perfilData, error: perfilError } = await supabase
           .from("artesaos")
           .select("*")
@@ -89,7 +83,6 @@ export default function Painel() {
         }
 
 
-        // 3. Busca apenas as peças do artesão específico
         const { data: produtosData, error: produtosError } = await supabase
           .from("produtos")
           .select("*")
@@ -108,7 +101,6 @@ export default function Painel() {
     carregarDados();
   }, []);
 
-  // Inicial do nome do Artesão para o avatar
   const iniciais = artesao?.nome
     ? artesao.nome
         .split(" ")
@@ -118,13 +110,11 @@ export default function Painel() {
         .toUpperCase()
     : "AR";
 
-  // Logout do sistema
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/login";
   };
 
-  // Salvar alterações de foto de perfil para o bucket imagens
   const handleUploadFotoPerfil = async (e) => {
     const file = e.target.files?.[0];
     if (!file) {
@@ -140,7 +130,6 @@ export default function Painel() {
       const fileName = `perfis/${user.id}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
       const detectType = file.type || `image/${fileExt === "png" ? "png" : "jpeg"}`;
 
-      // Aponta para o bucket imagens
       const { error: uploadError } = await supabase.storage
         .from("imagens")
         .upload(fileName, file, {
@@ -208,7 +197,6 @@ export default function Painel() {
     }
   };
 
-  // Upload da imagem
   const handleUploadImagem = async (e) => {
     const file = e.target.files?.[0];
     if (!file) {
@@ -250,7 +238,6 @@ export default function Painel() {
     }
   };
 
-  // Adicionar um novo produto preenchendo 'preco' e 'preco_sugerido' para manter compatibilidade com a estrutura antiga do banco
   const adicionarProduto = async (e) => {
     e.preventDefault();
     if (!novoProduto.nome || !novoProduto.preco) {
@@ -269,8 +256,8 @@ export default function Painel() {
             nome: novoProduto.nome,
             descricao: novoProduto.descricao,
             categoria: novoProduto.categoria || "ARGILA E CERÂMICA",
-            preco_sugerido: valorNumerico, // Mantém compatibilidade com coluna antiga
-            preco: valorNumerico,          // Atualiza a nova coluna mapeada no banco
+            preco_sugerido: valorNumerico,
+            preco: valorNumerico,
             imagem: novoProduto.imagem || null,
           },
         ])
@@ -289,7 +276,6 @@ export default function Painel() {
     }
   };
 
-  // Remover produto do banco de dados
   const removerProduto = async (id) => {
     if (!confirm("Tem certeza que deseja remover esta peça da sua vitrine?")) return;
 
@@ -313,7 +299,6 @@ export default function Painel() {
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] text-[#2B1B14]">
-      {/* Header */}
       <header className="mx-auto max-w-6xl px-4 pt-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-5">
@@ -343,10 +328,8 @@ export default function Painel() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-        {/* Card de Perfil do Artesão */}
         <section className="rounded-3xl border border-[#E7D7C8] bg-white p-6 md:p-8">
           <div className="flex flex-col gap-6 md:gap-8 lg:flex-row lg:items-start lg:justify-between">
-            {/* Lado Esquerdo */}
             <div className="flex items-start gap-4 md:gap-6">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#FFF4D6] overflow-hidden">
                 {fotoPerfil ? (
@@ -381,7 +364,6 @@ export default function Painel() {
               </div>
             </div>
 
-            {/* Lado Direito — Ações */}
             <div className="flex flex-row flex-wrap gap-3 lg:flex-col lg:items-end">
               <button
                 onClick={() => setMostrarEdicao(true)}
@@ -405,7 +387,6 @@ export default function Painel() {
           </div>
         </section>
 
-        {/* Seção Minhas Peças Expostas */}
         <section>
           <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -481,7 +462,6 @@ export default function Painel() {
         </section>
       </main>
 
-      {/* Modal Editar Perfil */}
       {mostrarEdicao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl max-h-[95vh] flex flex-col">
@@ -569,7 +549,6 @@ export default function Painel() {
         </div>
       )}
 
-      {/* Modal Novo Produto */}
       {mostrarNovoProduto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl max-h-[95vh] flex flex-col">
@@ -667,7 +646,6 @@ export default function Painel() {
         </div>
       )}
 
-      {/* Modal Detalhes do Produto */}
       {produtoSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="relative w-full max-w-4xl rounded-3xl bg-[#F9F9F9] shadow-2xl border border-[#E7D7C8] overflow-hidden max-h-[90vh] flex flex-col md:flex-row">
@@ -675,7 +653,6 @@ export default function Painel() {
               <X size={20} />
             </button>
 
-            {/* Lado Esquerdo: Imagem */}
             <div className="w-full md:w-1/2 bg-[#E7D7C8]/30 flex flex-col justify-center items-center p-6 min-h-[250px] md:min-h-full">
               {produtoSelecionado.imagem ? (
                 <img src={produtoSelecionado.imagem} alt={produtoSelecionado.nome} className="h-full w-full object-cover rounded-xl" />
@@ -684,7 +661,6 @@ export default function Painel() {
               )}
             </div>
 
-            {/* Lado Direito: Informações */}
             <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto bg-white border-t md:border-t-0 md:border-l border-[#E7D7C8]">
               <div>
                 <span className="text-[11px] font-bold tracking-widest text-[#8B5A2B] uppercase">
@@ -706,7 +682,6 @@ export default function Painel() {
                 </div>
               </div>
 
-              {/* Ações */}
               <div className="mt-6 pt-4 border-t border-[#E7D7C8] flex flex-col gap-3">
                 <button
                   type="button"
@@ -721,7 +696,6 @@ export default function Painel() {
         </div>
       )}
 
-      {/* Footer */}
       <footer className="mt-8 bg-[#2B1B14]">
         <div className="mx-auto max-w-6xl px-4 py-12 text-center text-white">
           <div className="text-2xl font-semibold">Artesanato de Capistrano</div>

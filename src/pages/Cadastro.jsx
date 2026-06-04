@@ -71,7 +71,6 @@ export default function Cadastro() {
       return;
     }
 
-    // Preview local da imagem selecionada 
     const url = URL.createObjectURL(file);
     setFotoPreviewUrl(url);
   };
@@ -86,7 +85,6 @@ export default function Cadastro() {
     try {
       setLoading(true);
 
-      // 1) Cria a autenticação do usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.senha,
@@ -131,7 +129,6 @@ export default function Cadastro() {
         }
       }
 
-      // 3) Insert automático na tabela `artesaos`
       const { error: perfilError } = await supabase
         .from("artesaos")
         .insert([
