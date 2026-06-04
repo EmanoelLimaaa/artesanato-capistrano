@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase'
 
 export const productService = {
-  // 1. ATUALIZAR PERFIL DO ARTESÃO (Painel do Usuário)
   async atualizarPerfil(id, dadosPerfil) {
     const { data, error } = await supabase
       .from('artesaos')
@@ -11,7 +10,6 @@ export const productService = {
     return data
   },
 
-  // 2. PUBLICAR NOVA PEÇA (Expor Peça)
   async publicarPeca(artesaoId, dadosPeca) {
     const { data, error } = await supabase
       .from('produtos')
@@ -21,7 +19,6 @@ export const productService = {
     return data
   },
 
-  // 3. ENVIAR FOTO (Para Perfil ou Produto)
   async uploadFoto(bucket, pasta, arquivo) {
     const fileExt = arquivo.name.split('.').pop()
     const fileName = `${pasta}/${Math.random()}.${fileExt}` 
@@ -32,7 +29,6 @@ export const productService = {
 
     if (uploadError) throw uploadError
 
-    // Pega a URL pública da imagem enviada
     const { data } = supabase.storage.from(bucket).getPublicUrl(fileName)
     return data.publicUrl
   }
